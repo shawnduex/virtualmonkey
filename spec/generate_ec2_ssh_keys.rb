@@ -51,16 +51,15 @@ cloud_ids.each { |cloud|
                         "parameters" =>
                           {"PRIVATE_SSH_KEY" => "key:#{key_name}:#{cloud}"}
                         }
+    # Generate Private Key File
+    priv_key_file = File.join(ssh_dir, "monkey-cloud-#{cloud}")
+    File.open(priv_key_file, "w") { |f| f.write(k.aws_material) }
   else
-    found = Ec2SshKeyInternal.find_by_cloud_id("1").select { |obj| obj.aws_key_name =~ /#{key_name}/ }.first
-    k = (found ? found : Ec2SshKey.create('aws_key_name' => key_name, 'cloud_id' => "1"))
-    keys["#{cloud}"] = {"parameters" =>
-                          {"PRIVATE_SSH_KEY" => "key:#{key_name}:1"}
-                        }
+    # Use API user's managed ssh key
+    puts "Using API user's managed ssh key" 
+    priv_key_file = File.join(ssh_dir, "api_user_key") #FIXME: write this file from ST input 
   end
-  # Generate Private Key Files
-  priv_key_file = File.join(ssh_dir, "monkey-cloud-#{cloud}")
-  File.open(priv_key_file, "w") { |f| f.write(k.aws_material) }
+
   File.chmod(0700, priv_key_file)
   # Configure rest_connection config
   rest_settings[:ssh_keys] << priv_key_file
